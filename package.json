@@ -1,6 +1,6 @@
 {
   "name": "coc-split-term",
-  "version": "0.0.0-development",
+  "version": "0.0.1-development",
   "description": "Toggle localized terminals for each window split with coc.nvim",
   "author": "Matt White <code@typenil.com>",
   "license": "MIT",
