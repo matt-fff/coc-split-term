@@ -16,6 +16,14 @@ export async function activate(context: ExtensionContext): Promise<void> {
       await show();
     }),
 
+    commands.registerCommand('split-term.Destroy', () => {
+      if (terminal) {
+        terminal.dispose();
+        terminal = null;
+        showing = false;
+      }
+    }),
+
     workspace.registerKeymap(
       ['n'],
       'split-term-toggle',
