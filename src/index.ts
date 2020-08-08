@@ -1,9 +1,11 @@
-import { commands, ExtensionContext, Terminal, workspace } from 'coc.nvim';
+import { commands, ExtensionContext, Terminal, workspace, events } from 'coc.nvim';
 
 let terminal: Terminal | null = null;
 let showing = false;
 
 export async function activate(context: ExtensionContext): Promise<void> {
+  workspace.showMessage(`werd ${Math.floor(Math.random() * 10000 + 1)}`);
+
   context.subscriptions.push(
     commands.registerCommand('split-term.Toggle', async () => {
       await toggle();
@@ -28,6 +30,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
       ['n'],
       'split-term-toggle',
       async () => {
+        workspace.showMessage(`tog: PID ${terminal ? await terminal.processId : -1}`);
         await toggle();
       },
       { sync: false }
@@ -37,6 +40,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
       ['n'],
       'split-term-hide',
       async () => {
+        workspace.showMessage(`hide: PID ${terminal ? await terminal.processId : -1}`);
         await hide();
       },
       { sync: false }
@@ -46,6 +50,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
       ['n'],
       'split-term-show',
       async () => {
+        workspace.showMessage(`show: PID ${terminal ? await terminal.processId : -1}`);
         await show();
       },
       { sync: false }
@@ -53,42 +58,49 @@ export async function activate(context: ExtensionContext): Promise<void> {
   );
 }
 
+async function setTerminal(): Promise<boolean> {
+  if (terminal) {
+    return true;
+  } else {
+    terminal = await workspace.createTerminal({ name: 'coc-terminal' });
+    if (terminal) {
+      events.on('TermClose', (bufnr: number, recreate = false) => {
+        workspace.showMessage(`bufnr: ${bufnr}, ${recreate}`, 'warning');
+      });
+      return true;
+    }
+  }
+  workspace.showMessage(`Create terminal failed`, 'error');
+  return false;
+}
+
 async function hide(): Promise<void> {
-  if (!terminal) {
-    return;
+  if (terminal) {
+    workspace.showMessage(`term: ${terminal}`);
+    terminal.hide();
   }
 
-  terminal.hide();
   showing = false;
 }
 
 async function show(): Promise<void> {
-  if (!terminal) {
-    terminal = await workspace.createTerminal({ name: 'coc-terminal' });
-    if (!terminal) {
-      workspace.showMessage(`Create terminal failed`, 'error');
-      return;
-    }
+  if (!(await setTerminal())) {
+    showing = false;
+    workspace.showMessage(`Show terminal failed`, 'error');
+    return;
   }
 
-  terminal.show();
+  if (!(terminal && terminal.show())) {
+    terminal = null;
+    await show();
+  }
   showing = true;
 }
 
 async function toggle(): Promise<void> {
-  if (!terminal) {
-    terminal = await workspace.createTerminal({ name: 'coc-terminal' });
-    if (!terminal) {
-      workspace.showMessage(`Create terminal failed`, 'error');
-      return;
-    }
-  }
-
   if (showing) {
-    terminal.hide();
-    showing = false;
+    await hide();
   } else {
-    terminal.show();
-    showing = true;
+    await show();
   }
 }
